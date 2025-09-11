@@ -40,10 +40,45 @@
         
         <p id="result"></p>
     </div>
+<script>
+    // 1. Define the URL of your API endpoint
+    // REPLACE "your-username" with your actual Hugging Face username!
+    const API_URL = "https://huggingface.co/spaces/your-username/my-ai-api/predict/";
 
-    <script>
-    function runDemo() {
-        document.getElementById('result').innerText = "The AI result will appear here soon!";
+    async function runDemo() {
+        // 2. Get the user's input from the text box
+        const inputText = document.getElementById('userInput').value;
+        const resultElement = document.getElementById('result');
+
+        // 3. Immediately show a loading message
+        resultElement.innerText = "Asking the AI... (This might take a few seconds to start)";
+
+        try {
+            // 4. Send a POST request to your API
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ input_text: inputText }), // Send the user's input
+            });
+
+            // 5. Check if the API response is OK
+            if (!response.ok) {
+                throw new Error(`API error! status: ${response.status}`);
+            }
+
+            // 6. Parse the JSON response from the API
+            const data = await response.json();
+
+            // 7. Display the AI's result on the webpage
+            resultElement.innerText = data.result;
+
+        } catch (error) {
+            // 8. If anything goes wrong, show the error message.
+            console.error('Error:', error);
+            resultElement.innerText = `Sorry, something went wrong. Error: ${error.message}`;
+        }
     }
 </script>
 </body>
