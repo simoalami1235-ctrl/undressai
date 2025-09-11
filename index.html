@@ -41,45 +41,55 @@
         <p id="result"></p>
     </div>
 <script>
-    // 1. Define the URL of your API endpoint
-    // REPLACE "your-username" with your actual Hugging Face username!
-    const API_URL = "https://huggingface.co/spaces/medalami1/my-ai-api/predict/";
+    const API_URL = "https://huggingface.co/spaces/medalami1/my-ai-api/predict/"; // <- Ensure username is correct!
 
     async function runDemo() {
-        // 2. Get the user's input from the text box
         const inputText = document.getElementById('userInput').value;
         const resultElement = document.getElementById('result');
+        const button = document.querySelector('button'); // Get the button
 
-        // 3. Immediately show a loading message
-        resultElement.innerText = "Asking the AI... (This might take a few seconds to start)";
+        // 1. DISABLE THE BUTTON to prevent multiple clicks
+        button.disabled = true;
+        // 2. Show a clear message about the potential wait
+        resultElement.innerText = "⏳ Waking up the AI server. This can take 60-90 seconds on the first request. Please be patient...";
+
+        // Create a custom AbortController to handle our own longer timeout
+        const controller = new AbortController();
+        // Set a longer timeout (120 seconds)
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
 
         try {
-            // 4. Send a POST request to your API
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ input_text: inputText }), // Send the user's input
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input_text: inputText }),
+                signal: controller.signal // Connect the abort controller
             });
 
-            // 5. Check if the API response is OK
+            clearTimeout(timeoutId); // Clear the timeout if the request succeeds
+
             if (!response.ok) {
                 throw new Error(`API error! status: ${response.status}`);
             }
 
-            // 6. Parse the JSON response from the API
             const data = await response.json();
-
-            // 7. Display the AI's result on the webpage
             resultElement.innerText = data.result;
 
         } catch (error) {
-            // 8. If anything goes wrong, show the error message.
-            console.error('Error:', error);
-            resultElement.innerText = `Sorry, something went wrong. Error: ${error.message}`;
+            if (error.name === 'AbortError') {
+                // This error is specifically from our 120-second timeout
+                resultElement.innerText = "❌ The request took too long. This is expected on the free server. Please try again in a moment.";
+            } else {
+                // This is some other error (network, etc.)
+                console.error('Error:', error);
+                resultElement.innerText = `Sorry, something went wrong: ${error.message}`;
+            }
+        } finally {
+            // 3. RE-ENABLE THE BUTTON whether the request succeeded or failed
+            button.disabled = false;
         }
     }
 </script>
+
 </body>
 </html>
