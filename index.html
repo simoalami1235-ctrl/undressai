@@ -11,9 +11,6 @@
             padding: 50px;
             background-color: #f4f4f4;
         }
-        h1 {
-            color: #333;
-        }
         .container {
             background: white;
             padding: 40px;
@@ -26,6 +23,14 @@
             margin: 10px;
             font-size: 16px;
         }
+        #result {
+            min-height: 50px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
     </style>
 </head>
 <body>
@@ -33,62 +38,47 @@
         <h1>Welcome to My AI App</h1>
         <p>This is where the AI magic will happen. Stay tuned!</p>
         
-        <!-- This is the simple UI we will use later -->
         <input type="text" id="userInput" placeholder="Enter your text here...">
         <br>
         <button onclick="runDemo()">Run AI Model</button>
         
-        <p id="result"></p>
+        <div id="result"></div>
     </div>
-<script>
-const API_URL = "/api/run-model";
-    async function runDemo() {
-        const inputText = document.getElementById('userInput').value;
-        const resultElement = document.getElementById('result');
-        const button = document.querySelector('button'); // Get the button
 
-        // 1. DISABLE THE BUTTON to prevent multiple clicks
-        button.disabled = true;
-        // 2. Show a clear message about the potential wait
-        resultElement.innerText = "⏳ Waking up the AI server. This can take 60-90 seconds on the first request. Please be patient...";
+    <script>
+        async function runDemo() {
+            const inputText = document.getElementById('userInput').value;
+            const resultElement = document.getElementById('result');
+            const button = document.querySelector('button');
 
-        // Create a custom AbortController to handle our own longer timeout
-        const controller = new AbortController();
-        // Set a longer timeout (120 seconds)
-        const timeoutId = setTimeout(() => controller.abort(), 120000);
+            // Show loading state
+            button.disabled = true;
+            resultElement.innerText = "⏳ Contacting the AI...";
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input_text: inputText }),
-                signal: controller.signal // Connect the abort controller
-            });
+            try {
+                // Call OUR API endpoint (Vercel serverless function)
+                const response = await fetch('/api/run-model', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ input_text: inputText }),
+                });
 
-            clearTimeout(timeoutId); // Clear the timeout if the request succeeds
+                if (!response.ok) {
+                    throw new Error(`API error! status: ${response.status}`);
+                }
 
-            if (!response.ok) {
-                throw new Error(`API error! status: ${response.status}`);
-            }
+                const data = await response.json();
+                resultElement.innerText = data.result;
 
-            const data = await response.json();
-            resultElement.innerText = data.result;
-
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                // This error is specifically from our 120-second timeout
-                resultElement.innerText = "❌ The request took too long. This is expected on the free server. Please try again in a moment.";
-            } else {
-                // This is some other error (network, etc.)
+            } catch (error) {
                 console.error('Error:', error);
                 resultElement.innerText = `Sorry, something went wrong: ${error.message}`;
+            } finally {
+                button.disabled = false;
             }
-        } finally {
-            // 3. RE-ENABLE THE BUTTON whether the request succeeded or failed
-            button.disabled = false;
         }
-    }
-</script>
-
+    </script>
 </body>
 </html>
